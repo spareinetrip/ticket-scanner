@@ -11,44 +11,30 @@
 <link rel="apple-touch-icon" href="icon-192.png" />
 
 <style>
-  :root{
-    --bg1:#ffffff; --bg2:#eef2f7; --fg:#0b0b0c; --muted:#6b7280; --tint:#0a84ff;
-    --shadow:0 12px 30px rgba(0,0,0,.10);
-  }
+  :root{--fg:#0b0b0c;--muted:#6b7280;--tint:#0a84ff;--shadow:0 12px 30px rgba(0,0,0,.10)}
   html,body{height:100%}
   body{
-    margin:0; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
-    background:linear-gradient(180deg,var(--bg1) 0%, var(--bg2) 100%); color:var(--fg);
-    overflow:hidden; -webkit-font-smoothing:antialiased;
+    margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
+    background:linear-gradient(180deg,#fff 0%,#eef2f7 100%);color:var(--fg);overflow:hidden
   }
-  .safe-top{padding-top:calc(env(safe-area-inset-top) + 16px)}
-  .safe-bottom{padding-bottom:calc(env(safe-area-inset-bottom) + 16px)}
-
-  /* Header zonder witte balk */
-  .app-title{font-weight:900;font-size:18px;text-align:center;margin:0 0 18px 0}
-
+  .safe-top{padding-top:calc(env(safe-area-inset-top)+16px)}
+  .safe-bottom{padding-bottom:calc(env(safe-area-inset-bottom)+16px)}
   .center{height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px}
-  .card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:24px;box-shadow:var(--shadow);padding:28px 26px;text-align:center}
+  .card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:24px;box-shadow:var(--shadow);
+        padding:28px 26px;text-align:center;max-width:520px;width:calc(100% - 32px);margin:0 16px}
   .btn{-webkit-tap-highlight-color:transparent;border:0;cursor:pointer;font-weight:800;letter-spacing:.2px;border-radius:16px;transition:transform .06s}
   .btn:active{transform:translateY(1px) scale(.98)}
   .btn-primary{background:var(--tint);color:#fff;padding:18px 22px;font-size:18px;box-shadow:var(--shadow)}
   .pill{border-radius:999px;padding:12px 16px;background:#fff;border:1px solid rgba(0,0,0,.06);box-shadow:0 8px 20px rgba(0,0,0,.08);font-weight:800}
-
-  /* Scanner */
-  .camera-box{position:relative;width:min(88vw,620px);aspect-ratio:1/1;border-radius:24px;overflow:hidden;
-              background:#000;border:1px solid rgba(0,0,0,.18);box-shadow:0 18px 44px rgba(0,0,0,.22),inset 0 0 0 1px rgba(255,255,255,.06)}
+  .app-title{font-weight:900;font-size:18px;text-align:center;margin:0 0 18px}
+  .camera-box{position:relative;width:min(88vw,620px);aspect-ratio:1/1;border-radius:24px;overflow:hidden;background:#000;border:1px solid rgba(0,0,0,.18);box-shadow:0 18px 44px rgba(0,0,0,.22),inset 0 0 0 1px rgba(255,255,255,.06)}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .corners{position:absolute;inset:12px;border-radius:18px;border:3px solid rgba(255,255,255,.92);pointer-events:none}
   .dock{display:flex;gap:12px;justify-content:center}
-
-  /* Viewer */
   #viewer{display:none;flex-direction:column;height:100vh}
   #viewer iframe{flex:1;width:100%;border:0;background:#fff}
   #viewer .backBtn{padding:18px;margin:0 auto 20px;background:var(--tint);color:#fff;border-radius:14px;font-weight:800;width:90%;max-width:340px}
-
-  /* Toast hoger (niet tegen pills) */
-  #toast{position:fixed;left:50%;bottom:40%;transform:translate(-50%,50%);background:rgba(0,0,0,.88);color:#fff;
-         padding:8px 12px;border-radius:12px;font-size:13px;opacity:0;transition:opacity .25s}
+  #toast{position:fixed;left:50%;bottom:40%;transform:translate(-50%,50%);background:rgba(0,0,0,.88);color:#fff;padding:8px 12px;border-radius:12px;font-size:13px;opacity:0;transition:opacity .25s}
   #toast.show{opacity:.95}
   footer{position:absolute;bottom:10px;width:100%;text-align:center;color:var(--muted);font-size:12px}
 </style>
@@ -59,8 +45,8 @@
 <section id="start" class="center">
   <h1 class="app-title safe-top">Ticket Scanner</h1>
   <div class="card">
-    <h2 style="margin:0 0 8px 0;font-size:28px">Ready to Scan</h2>
-    <p style="margin:0 0 18px 0;color:var(--muted)">Use the rear camera. Flash & sound available in scanner.</p>
+    <h2 style="margin:0 0 8px;font-size:28px">Ready to Scan</h2>
+    <p style="margin:0 0 18px;color:var(--muted)">Use the rear camera. Flash & sound available in scanner.</p>
     <button id="startBtn" class="btn btn-primary">Start</button>
   </div>
   <footer class="safe-bottom">Add to Home Screen for full-screen experience.</footer>
@@ -79,7 +65,7 @@
   </div>
 </section>
 
-<!-- VIEWER (in-app) -->
+<!-- VIEWER -->
 <section id="viewer">
   <h1 class="app-title safe-top">Ticket Scanner</h1>
   <iframe id="frame" sandbox="allow-scripts allow-forms allow-same-origin allow-popups"></iframe>
@@ -88,6 +74,7 @@
 
 <div id="toast"></div>
 
+<!-- ZXing fallback -->
 <script src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js"></script>
 <script>
 const start = document.getElementById('start');
@@ -101,82 +88,101 @@ const backBtn = document.getElementById('backToScan');
 const video = document.getElementById('video');
 const toast = document.getElementById('toast');
 
-let audioCtx, beepOn = true, currentStream, torchOn = false, reader, lastText = '', active = false;
+let audioCtx, beepOn=true, currentStream, torchOn=false, reader, lastText='', active=false;
 
-function showToast(m){ toast.textContent=m; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 1000); }
-function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') return audioCtx.resume(); return Promise.resolve(); }
-function beep(){ if(!beepOn) return; ensureAudio().then(()=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type='sine'; o.frequency.value=880; o.connect(g); g.connect(audioCtx.destination); g.gain.setValueAtTime(0.001,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.2,audioCtx.currentTime+0.02); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15); o.start(); o.stop(audioCtx.currentTime+0.17); }); }
+function toastMsg(m){toast.textContent=m;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1000);}
+function ensureAudio(){if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') return audioCtx.resume(); return Promise.resolve();}
+function beep(){ if(!beepOn) return; ensureAudio().then(()=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=880;o.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(0.001,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.2,audioCtx.currentTime+0.02);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);o.start();o.stop(audioCtx.currentTime+0.17);});}
 
 async function startCamera(){
   if(currentStream) currentStream.getTracks().forEach(t=>t.stop());
-  const constraints = { video: { facingMode: { ideal: 'environment' }, width:{ideal:1280}, height:{ideal:720} } };
+  const constraints={ video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} } };
   try { currentStream = await navigator.mediaDevices.getUserMedia(constraints); }
-  catch { currentStream = await navigator.mediaDevices.getUserMedia({ video: true }); }
-  video.srcObject = currentStream;
-  await video.play();
+  catch { currentStream = await navigator.mediaDevices.getUserMedia({ video:true }); }
+  video.srcObject=currentStream; await video.play();
 }
 
 async function setTorch(on){
-  const track = currentStream && currentStream.getVideoTracks()[0]; if(!track) return;
-  const caps = track.getCapabilities && track.getCapabilities();
-  if (caps && 'torch' in caps) {
-    try { await track.applyConstraints({ advanced:[{ torch:on }] }); torchOn = on; showToast(on?'Flash on':'Flash off'); } catch {}
-  } else { showToast('Flash not supported'); }
+  const track=currentStream && currentStream.getVideoTracks()[0]; if(!track) return;
+  const caps=track.getCapabilities && track.getCapabilities();
+  if(caps && 'torch' in caps){
+    try{ await track.applyConstraints({ advanced:[{ torch:on }] }); torchOn=on; toastMsg(on?'Flash on':'Flash off'); }catch{}
+  }else{ toastMsg('Flash not supported'); }
 }
 
-/* === ROBUST SCAN LOOP (QR only) === */
-async function startScanner(){
+/* ---- Robust scanning: BarcodeDetector first, fallback to ZXing ---- */
+let bdLoop=null;
+async function startScanLoop(){
   await ensureAudio();
   await startCamera();
-  const { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } = ZXingBrowser;
-  const hints = new Map();
-  hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
-  hints.set(DecodeHintType.TRY_HARDER, true);
-  reader = new BrowserMultiFormatReader(hints);
+  active=true; lastText='';
 
-  active = true; lastText = '';
+  if ('BarcodeDetector' in window) {
+    const detector = new BarcodeDetector({ formats: ['qr_code'] });
+    const loop = async () => {
+      if(!active) return;
+      try{
+        const codes = await detector.detect(video);
+        if (codes && codes.length){
+          const txt = (codes[0].rawValue || '').trim();
+          if (txt && txt !== lastText){
+            lastText = txt; beep(); openViewer(txt); return;
+          }
+        }
+      } catch(_){ /* keep looping */ }
+      bdLoop = requestAnimationFrame(loop);
+    };
+    loop();
+    return;
+  }
+
+  // Fallback: ZXing
+  const { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } = window.ZXingBrowser || {};
+  const hints = new Map();
+  if (DecodeHintType && BarcodeFormat) {
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
+    hints.set(DecodeHintType.TRY_HARDER, true);
+  }
+  reader = new (BrowserMultiFormatReader || function(){ return { decodeFromVideoDevice:()=>{}, reset:()=>{} }; })(hints);
   reader.decodeFromVideoDevice(null, video, (result, err) => {
     if(!active) return;
-    if(result){
+    if (result) {
       const txt = (result.text || '').trim();
-      if(txt && txt !== lastText){
-        lastText = txt; beep();
-        openViewer(txt);
-      }
+      if (txt && txt !== lastText){ lastText = txt; beep(); openViewer(txt); }
     }
-    // errors are expected between frames; no logs needed
   });
 }
 
-function stopScanner(){
-  active = false;
-  if(reader){ try{ reader.reset(); }catch{} }
-  if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); currentStream = null; }
+function stopScanLoop(){
+  active=false;
+  if (bdLoop) cancelAnimationFrame(bdLoop), bdLoop=null;
+  if (reader){ try{ reader.reset(); }catch{} }
+  if (currentStream){ currentStream.getTracks().forEach(t=>t.stop()); currentStream=null; }
 }
 
 function openViewer(url){
-  stopScanner();
-  scanner.style.display = 'none';
-  viewer.style.display = 'flex';
+  stopScanLoop();
+  scanner.style.display='none';
+  viewer.style.display='flex';
   try { new URL(url); frame.src = url; }
   catch { frame.srcdoc = "<p style='padding:20px;font-family:sans-serif'>Invalid QR: "+url+"</p>"; }
 }
 
 function backToScanner(){
-  frame.src = 'about:blank';
-  viewer.style.display = 'none';
-  scanner.style.display = 'flex';
-  startScanner();
+  frame.src='about:blank';
+  viewer.style.display='none';
+  scanner.style.display='flex';
+  startScanLoop();
 }
 
-/* UI events */
-startBtn.onclick = () => { start.style.display='none'; scanner.style.display='flex'; startScanner(); };
-flashBtn.onclick = () => setTorch(!torchOn);
-soundBtn.onclick = () => { beepOn = !beepOn; soundBtn.textContent = beepOn ? '🔊 Sound on' : '🔇 Sound off'; showToast(beepOn?'Sound on':'Sound off'); };
-backBtn.onclick = () => backToScanner();
+/* UI */
+startBtn.onclick=()=>{ start.style.display='none'; scanner.style.display='flex'; startScanLoop(); };
+flashBtn.onclick=()=>setTorch(!torchOn);
+soundBtn.onclick=()=>{ beepOn=!beepOn; soundBtn.textContent=beepOn?'🔊 Sound on':'🔇 Sound off'; toastMsg(beepOn?'Sound on':'Sound off'); };
+backBtn.onclick=()=>backToScanner();
 
-/* Prevent accidental zoom in standalone */
-document.addEventListener('gesturestart', e => e.preventDefault());
+/* Prevent pinch-zoom in standalone */
+document.addEventListener('gesturestart',e=>e.preventDefault());
 </script>
 </body>
 </html>
