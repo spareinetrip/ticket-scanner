@@ -21,7 +21,7 @@
   .safe-bottom{padding-bottom:calc(env(safe-area-inset-bottom)+16px)}
   .center{height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px}
   .card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:24px;box-shadow:var(--shadow);
-        padding:24px 18px;text-align:center;max-width:520px;width:calc(100% - 32px);margin:0 40px}
+        padding:36px 40px;text-align:center;max-width:520px;width:calc(100% - 56px);margin:0 28px}
   .btn{-webkit-tap-highlight-color:transparent;border:0;cursor:pointer;font-weight:800;letter-spacing:.2px;border-radius:16px;transition:transform .06s}
   .btn:active{transform:translateY(1px) scale(.98)}
   .btn-primary{background:var(--tint);color:#fff;padding:18px 22px;font-size:18px;box-shadow:var(--shadow)}
@@ -31,12 +31,24 @@
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .corners{position:absolute;inset:12px;border-radius:18px;border:3px solid rgba(255,255,255,.92);pointer-events:none}
   .dock{display:flex;gap:12px;justify-content:center}
-  #viewer{display:none;flex-direction:column;height:100vh}
-  #viewer iframe{flex:1;width:100%;border:0;background:#fff}
-  #viewer .backBtn{padding:18px;margin:0 auto 20px;background:var(--tint);color:#fff;border-radius:14px;font-weight:800;width:90%;max-width:340px}
+  #viewer{display:none;flex-direction:column;height:100vh;position:relative}
+  #viewer iframe{flex:1;width:100%;border:0;opacity:0;transition:opacity .3s ease;background:transparent;transform:scale(1)}
+  #viewer .backBtn{position:fixed;left:5%;right:5%;bottom:calc(env(safe-area-inset-bottom)+var(--bot,16px));
+                   padding:18px;background:var(--tint);color:#fff;border-radius:14px;font-weight:800;max-width:340px;margin:0 auto}
   #toast{position:fixed;left:50%;bottom:40%;transform:translate(-50%,50%);background:rgba(0,0,0,.88);color:#fff;padding:8px 12px;border-radius:12px;font-size:13px;opacity:0;transition:opacity .25s}
   #toast.show{opacity:.95}
   footer{position:absolute;bottom:10px;width:100%;text-align:center;color:var(--muted);font-size:12px}
+  /* Spinner overlay */
+  #loader{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:#fff;z-index:2;opacity:0;transition:opacity .3s ease;pointer-events:none
+  }
+  #loader.active{opacity:1}
+  .spinner{
+    width:40px;height:40px;border:4px solid rgba(0,0,0,.15);border-top-color:var(--tint);
+    border-radius:50%;animation:spin 0.9s linear infinite
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -67,27 +79,28 @@
 
 <!-- VIEWER -->
 <section id="viewer">
-  <h1 class="app-title safe-top">Ticket Scanner</h1>
+  <div id="loader"><div class="spinner"></div></div>
   <iframe id="frame" sandbox="allow-scripts allow-forms allow-same-origin allow-popups"></iframe>
   <button id="backToScan" class="backBtn safe-bottom">↩︎ Back to Scanner</button>
 </section>
 
 <div id="toast"></div>
 
-<!-- jsQR (pure JS decoder) -->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-
 <script>
 const start = document.getElementById('start');
 const scanner = document.getElementById('scanner');
 const viewer = document.getElementById('viewer');
 const frame = document.getElementById('frame');
+const loader = document.getElementById('loader');
 const startBtn = document.getElementById('startBtn');
 const flashBtn = document.getElementById('flashBtn');
 const soundBtn = document.getElementById('soundBtn');
 const backBtn = document.getElementById('backToScan');
 const video = document.getElementById('video');
 const toast = document.getElementById('toast');
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+document.documentElement.style.setProperty('--bot', isStandalone ? '16px' : '90px');
 
 let audioCtx, beepOn=true, currentStream, torchOn=false, rafId=null, lastText='';
 
@@ -118,55 +131,36 @@ const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 function loop(){
   if (!video.videoWidth || !video.videoHeight) { rafId = requestAnimationFrame(loop); return; }
-  // Neem een vierkant middenstuk uit de videofeed (beste voor QR)
   const vw = video.videoWidth, vh = video.videoHeight;
   const size = Math.min(vw, vh);
   const sx = (vw - size) / 2, sy = (vh - size) / 2;
-
-  // Schaal naar 480x480 voor performance & betrouwbaarheid
   const OUT = 480;
   canvas.width = OUT; canvas.height = OUT;
   ctx.drawImage(video, sx, sy, size, size, 0, 0, OUT, OUT);
-
   const img = ctx.getImageData(0, 0, OUT, OUT);
   const res = jsQR(img.data, OUT, OUT, { inversionAttempts: "dontInvert" });
-
   if (res && res.data) {
     const txt = (res.data || '').trim();
-    if (txt && txt !== lastText) {
-      lastText = txt; beep(); openViewer(txt); return;
-    }
+    if (txt && txt !== lastText) { lastText = txt; beep(); openViewer(txt); return; }
   }
   rafId = requestAnimationFrame(loop);
 }
 
-async function startScan(){
-  await ensureAudio();
-  await startCamera();
-  lastText = '';
-  if (rafId) cancelAnimationFrame(rafId);
-  loop();
-}
-
-function stopScan(){
-  if (rafId) cancelAnimationFrame(rafId), rafId=null;
-  if (currentStream){ currentStream.getTracks().forEach(t=>t.stop()); currentStream=null; }
-}
+async function startScan(){ await ensureAudio(); await startCamera(); lastText=''; if (rafId) cancelAnimationFrame(rafId); loop(); }
+function stopScan(){ if (rafId) cancelAnimationFrame(rafId), rafId=null; if (currentStream){ currentStream.getTracks().forEach(t=>t.stop()); currentStream=null; } }
 
 function openViewer(url){
-  stopScan();
-  scanner.style.display='none';
-  viewer.style.display='flex';
-  try { new URL(url); frame.src = url; }
-  catch { frame.srcdoc = "<p style='padding:20px;font-family:sans-serif'>Invalid QR: "+url+"</p>"; }
+  stopScan(); scanner.style.display='none'; viewer.style.display='flex'; loader.classList.add('active'); frame.style.opacity='0';
+  try {
+    const u = new URL(url);
+    if (!u.searchParams.has('scale')) u.searchParams.set('scale','1.0');
+    url = u.toString();
+  } catch(_) {}
+  frame.src = url;
 }
+frame.onload = ()=>{ loader.classList.remove('active'); frame.style.opacity='1'; };
 
-function backToScanner(){
-  frame.src='about:blank';
-  viewer.style.display='none';
-  scanner.style.display='flex';
-  startScan();
-}
+function backToScanner(){ frame.src='about:blank'; viewer.style.display='none'; scanner.style.display='flex'; startScan(); }
 
 /* UI */
 startBtn.onclick = ()=>{ start.style.display='none'; scanner.style.display='flex'; startScan(); };
@@ -174,7 +168,7 @@ flashBtn.onclick = ()=> setTorch(!torchOn);
 soundBtn.onclick = ()=>{ beepOn=!beepOn; soundBtn.textContent = beepOn ? '🔊 Sound on' : '🔇 Sound off'; toastMsg(beepOn?'Sound on':'Sound off'); };
 backBtn.onclick = ()=> backToScanner();
 
-/* iOS: voorkom pinch-zoom in standalone */
+/* iOS: voorkom pinch-zoom */
 document.addEventListener('gesturestart', e => e.preventDefault());
 </script>
 </body>
