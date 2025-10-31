@@ -3,278 +3,114 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Check‑in Scanner</title>
+<title>Ticket Scanner</title>
 
-<!-- iOS A2HS friendly -->
+<link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <link rel="apple-touch-icon" href="icon-192.png" />
 
 <style>
   :root {
-    --bg: #f5f6f7;
-    --fg: #0b0b0c;
-    --muted: #6b7280;
-    --tint: #0a84ff;        /* iOS blue */
-    --ok: #34c759;          /* iOS green */
-    --danger: #ff3b30;      /* iOS red */
-    --card: #ffffff;
-    --shadow: 0 12px 30px rgba(0,0,0,.10);
-    --radius-xxl: 28px;
-    --radius-xl: 22px;
+    --bg:#f5f6f7;--fg:#0b0b0c;--muted:#6b7280;--tint:#0a84ff;
+    --ok:#34c759;--danger:#ff3b30;--card:#fff;
+    --shadow:0 12px 30px rgba(0,0,0,.1);
   }
-  @supports (-webkit-touch-callout:none) {
-    body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Arial, sans-serif; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
+    background:linear-gradient(180deg,#fff 0%,#eef2f7 100%);
+    color:var(--fg); overflow:hidden;
   }
-  html, body { height: 100%; }
-  body { margin: 0; background: linear-gradient(180deg,#fff 0%, #eef2f7 100%); color: var(--fg); }
-
-  /* Generic */
-  .visually-hidden { position:absolute !important; height:1px; width:1px; overflow:hidden; clip:rect(1px,1px,1px,1px); }
-  .safe { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
-  .safe-top { padding-top: calc(env(safe-area-inset-top) + 12px); }
-  .safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 12px); }
-
-  /* Buttons */
-  .btn { -webkit-tap-highlight-color: transparent; user-select:none; border:0; cursor:pointer; font-weight:800; letter-spacing:.2px; border-radius: 16px; box-shadow: var(--shadow); transition: transform .06s ease, box-shadow .2s ease; }
-  .btn:active { transform: translateY(1px) scale(.99); }
-  .btn-primary { background: var(--tint); color:#fff; padding: 18px 22px; font-size: 18px; }
-  .btn-plain { background: #f4f5f7; color: var(--fg); padding: 14px 18px; }
-  .pill { border-radius: 999px; padding: 12px 16px; background: #fff; border: 1px solid rgba(0,0,0,.06); box-shadow: 0 8px 20px rgba(0,0,0,.08); font-weight: 800; }
-
-  /* Card */
-  .card { background: var(--card); border: 1px solid rgba(0,0,0,.06); border-radius: var(--radius-xxl); box-shadow: var(--shadow); }
-
-  /* App shell */
-  .screen { min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; }
-  header.appbar { position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(180%) blur(12px); background: rgba(255,255,255,.8); border-bottom: 1px solid rgba(0,0,0,.06); }
-  header .title { font-weight: 900; font-size: 17px; padding: 8px 0 12px; }
-  footer.appfoot { text-align:center; color: var(--muted); font-size: 12px; }
-
-  /* Start screen */
-  .start-center { display:grid; place-items:center; height: calc(100vh - 140px); }
-  .start-card { padding: 28px 24px; text-align:center; max-width: 520px; }
-  .start-card h1 { margin:0 0 8px; font-size: 28px; }
-  .start-card p  { margin:0 0 18px; color: var(--muted); }
-
-  /* Scanner page */
-  #scanner { display:none; min-height:100vh; background: linear-gradient(180deg,#fff 0%, #eef2f7 100%); }
-  #scanner.show { display:grid; grid-template-rows:auto 1fr auto; }
-  .topbar { display:flex; align-items:center; gap:10px; }
-  .ghost { background: rgba(255,255,255,.7); border: 1px solid rgba(0,0,0,.08); padding: 10px 14px; }
-  .topbar .title { font-weight: 900; font-size: 17px; margin-left: 6px; }
-
-  /* Square camera viewport with rounded corners and subtle chrome */
-  .camera-wrap { display:grid; place-items:center; margin-top: 14px; }
-  .camera-box {
-    position: relative; width: min(88vw, 620px); aspect-ratio: 1 / 1; border-radius: 24px; overflow:hidden;
-    background:#000; border: 1px solid rgba(0,0,0,.18); box-shadow: 0 18px 44px rgba(0,0,0,.22), inset 0 0 0 1px rgba(255,255,255,.06);
-  }
-  video { position:absolute; inset:0; width:100%; height:100%; object-fit: cover; transform: none; }
-
-  /* Minimal framing (no harsh vignette) */
-  .corners { position:absolute; inset: 12px; border-radius: 18px; border: 3px solid rgba(255,255,255,.92); box-shadow: 0 0 0 1px rgba(0,0,0,.15) inset; pointer-events:none; }
-
-  /* Bottom controls docked above safe area */
-  .dock { display:flex; justify-content:center; gap:12px; }
-
-  /* Status text */
-  .status { text-align:center; color: var(--muted); font-size: 14px; padding-top: 8px; }
-
-  /* Action sheet */
-  .sheet { position: fixed; left: 0; right: 0; bottom: -60%; z-index: 50; background: #fff; border-top-left-radius: 24px; border-top-right-radius: 24px; box-shadow: 0 -12px 30px rgba(0,0,0,.18); border: 1px solid rgba(0,0,0,.06); padding: 18px; transition: bottom .22s ease; }
-  .sheet.show { bottom: 0; }
-  .sheet h3 { margin: 4px 0 10px; font-size: 18px; font-weight: 900; }
-  .row { display:flex; gap:10px; }
-  .row .btn { flex:1; }
-  .urlbox { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: #f3f4f6; border-radius: 12px; padding: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 1px solid rgba(0,0,0,.06); }
-
-  /* Toast */
-  #toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 18px); transform: translateX(-50%); background: rgba(0,0,0,.88); color:#fff; padding: 8px 12px; border-radius: 12px; font-size: 13px; opacity: 0; transition: opacity .25s; }
-  #toast.show { opacity: .95; }
+  .btn{-webkit-tap-highlight-color:transparent;border:0;cursor:pointer;font-weight:800;letter-spacing:.2px;
+       border-radius:16px;box-shadow:var(--shadow);transition:transform .06s ease;}
+  .btn:active{transform:translateY(1px) scale(.98);}
+  .btn-primary{background:var(--tint);color:#fff;padding:18px 22px;font-size:18px;}
+  .pill{border-radius:999px;padding:12px 16px;background:#fff;border:1px solid rgba(0,0,0,.06);
+        box-shadow:0 8px 20px rgba(0,0,0,.08);font-weight:800;}
+  .safe-top{padding-top:calc(env(safe-area-inset-top)+16px);}
+  .safe-bottom{padding-bottom:calc(env(safe-area-inset-bottom)+16px);}
+  .center{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;}
+  header{position:sticky;top:0;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);
+         border-bottom:1px solid rgba(0,0,0,.06);text-align:center;font-weight:900;font-size:18px;padding:10px 0 18px;}
+  footer{text-align:center;color:var(--muted);font-size:12px;position:absolute;bottom:10px;width:100%;}
+  .camera-box{position:relative;width:min(88vw,620px);aspect-ratio:1/1;border-radius:24px;overflow:hidden;
+              background:#000;border:1px solid rgba(0,0,0,.18);
+              box-shadow:0 18px 44px rgba(0,0,0,.22),inset 0 0 0 1px rgba(255,255,255,.06);}
+  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .corners{position:absolute;inset:12px;border-radius:18px;border:3px solid rgba(255,255,255,.9);pointer-events:none;}
+  .dock{display:flex;justify-content:center;gap:12px;margin-top:14px;}
+  #toast{position:fixed;left:50%;bottom:50%;transform:translate(-50%,50%);background:rgba(0,0,0,.88);
+         color:#fff;padding:8px 12px;border-radius:12px;font-size:13px;opacity:0;transition:opacity .25s;}
+  #toast.show{opacity:.95;}
+  #viewer{display:none;flex-direction:column;height:100vh;}
+  #viewer iframe{flex:1;width:100%;border:0;}
+  #viewer .backBtn{padding:18px;margin:0 auto 20px;background:var(--tint);color:#fff;
+                   border-radius:14px;font-weight:800;width:90%;max-width:340px;}
 </style>
 </head>
 <body>
 
-<!-- START SCREEN -->
-<section id="start" class="screen">
-  <header class="appbar safe safe-top">
-    <div class="title">Check‑in</div>
-  </header>
-  <main class="safe start-center">
-    <div class="card start-card">
-      <h1>Ready to scan</h1>
-      <p>Use the rear camera. Flash and sound can be toggled later.</p>
-      <button id="startBtn" class="btn btn-primary" style="width:100%">Start</button>
-    </div>
-  </main>
-  <footer class="appfoot safe safe-bottom">Add to Home Screen for a full‑screen experience.</footer>
+<!-- START -->
+<section id="start" class="center">
+  <header class="safe-top">Ticket Scanner</header>
+  <div class="card" style="text-align:center;padding:30px;">
+    <h1 style="margin-bottom:10px;">Ready to Scan</h1>
+    <p style="color:var(--muted);margin-bottom:18px;">Use the rear camera. Flash & sound available in scanner.</p>
+    <button id="startBtn" class="btn btn-primary">Start</button>
+  </div>
+  <footer class="safe-bottom">Add to Home Screen for full-screen experience.</footer>
 </section>
 
 <!-- SCANNER -->
-<section id="scanner" aria-hidden="true">
-  <header class="appbar safe safe-top">
-    <div class="topbar">
-      <button id="backBtn" class="btn ghost">↩︎ Back</button>
-      <div class="title">Scanner</div>
-    </div>
-  </header>
-
-  <main class="safe">
-    <div class="camera-wrap">
-      <div class="camera-box">
-        <video id="video" playsinline></video>
-        <div class="corners"></div>
-      </div>
-      <div id="status" class="status">Point the camera at a QR code.</div>
-    </div>
-  </main>
-
-  <footer class="safe safe-bottom">
-    <div class="dock">
-      <button id="flashBtn" class="pill">🔦 Flash</button>
-      <button id="soundBtn" class="pill">🔊 Sound on</button>
-    </div>
-  </footer>
+<section id="scanner" class="center" style="display:none;">
+  <header class="safe-top">Scanner</header>
+  <div class="camera-box">
+    <video id="video" playsinline></video>
+    <div class="corners"></div>
+  </div>
+  <div class="dock safe-bottom">
+    <button id="flashBtn" class="pill">🔦 Flash</button>
+    <button id="soundBtn" class="pill">🔊 Sound on</button>
+  </div>
 </section>
 
-<!-- ACTION SHEET -->
-<div id="sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
-  <h3 id="sheetTitle">Open link?</h3>
-  <div id="url" class="urlbox">—</div>
-  <div style="height:10px"></div>
-  <div class="row">
-    <button id="openBtn" class="btn btn-primary">Open</button>
-    <button id="closeBtn" class="btn btn-plain">Cancel</button>
-  </div>
-</div>
+<!-- VIEWER -->
+<section id="viewer">
+  <header class="safe-top">Ticket Scanner</header>
+  <iframe id="frame"></iframe>
+  <button id="backToScan" class="backBtn safe-bottom">↩︎ Back to Scanner</button>
+</section>
 
 <div id="toast"></div>
 
 <script src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js"></script>
 <script>
-  // Elements
-  const startScreen = document.getElementById('start');
-  const scannerScreen = document.getElementById('scanner');
-  const startBtn = document.getElementById('startBtn');
-  const backBtn = document.getElementById('backBtn');
-  const video = document.getElementById('video');
-  const flashBtn = document.getElementById('flashBtn');
-  const soundBtn = document.getElementById('soundBtn');
-  const statusEl = document.getElementById('status');
-  const sheet = document.getElementById('sheet');
-  const urlBox = document.getElementById('url');
-  const openBtn = document.getElementById('openBtn');
-  const closeBtn = document.getElementById('closeBtn');
-  const toast = document.getElementById('toast');
+const start=document.getElementById('start');
+const scanner=document.getElementById('scanner');
+const viewer=document.getElementById('viewer');
+const frame=document.getElementById('frame');
+const startBtn=document.getElementById('startBtn');
+const flashBtn=document.getElementById('flashBtn');
+const soundBtn=document.getElementById('soundBtn');
+const backBtn=document.getElementById('backToScan');
+const video=document.getElementById('video');
+const toast=document.getElementById('toast');
+let audioCtx,beepOn=true,currentStream,torchOn=false,reader,lastText='',active=false;
 
-  let audioCtx, beepOn = true, currentStream, currentDeviceId = null, torchOn = false, reader;
-  let lastText = '', loopActive = false;
-
-  function show(el){ el.classList.add('show'); }
-  function hide(el){ el.classList.remove('show'); }
-  function toastMsg(msg){ toast.textContent=msg; show(toast); setTimeout(()=>hide(toast), 1100); }
-
-  function ensureAudio(){
-    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') return audioCtx.resume();
-    return Promise.resolve();
-  }
-  function beep(ok=true){
-    if (!beepOn) return;
-    ensureAudio().then(()=>{
-      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.type='sine'; o.frequency.value = ok? 880 : 440;
-      o.connect(g); g.connect(audioCtx.destination);
-      g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.22, audioCtx.currentTime+0.012);
-      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.14);
-      o.start(); o.stop(audioCtx.currentTime+0.16);
-    }).catch(()=>{});
-  }
-
-  async function startCamera(){
-    if (currentStream) currentStream.getTracks().forEach(t=>t.stop());
-    const preferEnv = { video: { facingMode: { ideal: 'environment' } } };
-    try { currentStream = await navigator.mediaDevices.getUserMedia(preferEnv); }
-    catch { currentStream = await navigator.mediaDevices.getUserMedia({ video: true }); }
-    video.srcObject = currentStream; await video.play();
-    const track = currentStream.getVideoTracks()[0];
-    const settings = track.getSettings(); if (settings.deviceId) currentDeviceId = settings.deviceId;
-    torchOn = false; await setTorch(false);
-  }
-
-  async function setTorch(on){
-    const track = currentStream && currentStream.getVideoTracks()[0]; if (!track) return;
-    const caps = track.getCapabilities && track.getCapabilities();
-    if (caps && 'torch' in caps) {
-      try { await track.applyConstraints({ advanced: [{ torch: on }] }); torchOn = on; toastMsg(on?'Flash on':'Flash off'); }
-      catch {}
-    } else { toastMsg('Flash not supported'); }
-  }
-
-  async function startScanner(){
-    await ensureAudio();
-    await startCamera();
-    reader = new ZXingBrowser.BrowserMultiFormatReader();
-    loopActive = true; lastText = '';
-    statusEl.textContent = 'Scanning…';
-
-    const decode = async () => {
-      if (!loopActive) return;
-      try {
-        const result = await reader.decodeOnceFromVideoElement(video);
-        if (result && result.text) {
-          const txt = result.text.trim();
-          if (txt && txt !== lastText) {
-            lastText = txt; beep(true);
-            urlBox.textContent = txt;
-            show(sheet);
-          }
-        }
-      } catch (_) { /* continue */ }
-      requestAnimationFrame(decode);
-    };
-    decode();
-  }
-
-  function stopScanner(){
-    loopActive = false;
-    if (reader) { try { reader.reset(); } catch(_){} }
-    if (currentStream) { currentStream.getTracks().forEach(t=>t.stop()); currentStream = null; }
-  }
-
-  // Routing
-  startBtn.addEventListener('click', () => {
-    ensureAudio();
-    startScreen.style.display='none';
-    scannerScreen.classList.add('show');
-    scannerScreen.setAttribute('aria-hidden','false');
-    startScanner();
-  });
-
-  backBtn.addEventListener('click', () => {
-    stopScanner();
-    scannerScreen.classList.remove('show');
-    scannerScreen.setAttribute('aria-hidden','true');
-    startScreen.style.display='grid';
-  });
-
-  // Controls
-  flashBtn.addEventListener('click', () => setTorch(!torchOn));
-  soundBtn.addEventListener('click', () => {
-    beepOn = !beepOn; soundBtn.textContent = beepOn ? '🔊 Sound on' : '🔇 Sound off';
-    toastMsg(beepOn ? 'Sound on' : 'Sound off');
-  });
-
-  openBtn.addEventListener('click', () => {
-    const href = urlBox.textContent.trim(); hide(sheet);
-    try { new URL(href); window.location.href = href; } catch { toastMsg('Invalid URL'); }
-  });
-  closeBtn.addEventListener('click', () => { hide(sheet); setTimeout(()=>{ lastText=''; }, 350); });
-
-  // Prevent accidental zoom in standalone
-  document.addEventListener('gesturestart', e => e.preventDefault());
+function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1000);}
+function ensureAudio(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')return audioCtx.resume();return Promise.resolve();}
+function beep(){if(!beepOn)return;ensureAudio().then(()=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=880;o.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(0.001,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.2,audioCtx.currentTime+0.02);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);o.start();o.stop(audioCtx.currentTime+0.17);});}
+async function startCamera(){if(currentStream)currentStream.getTracks().forEach(t=>t.stop());const preferEnv={video:{facingMode:{ideal:'environment'}}};try{currentStream=await navigator.mediaDevices.getUserMedia(preferEnv);}catch{currentStream=await navigator.mediaDevices.getUserMedia({video:true});}video.srcObject=currentStream;await video.play();}
+async function setTorch(on){const track=currentStream&&currentStream.getVideoTracks()[0];if(!track)return;const caps=track.getCapabilities&&track.getCapabilities();if(caps&&'torch'in caps){await track.applyConstraints({advanced:[{torch:on}]});torchOn=on;showToast(on?'Flash on':'Flash off');}else showToast('Flash not supported');}
+async function startScanner(){await ensureAudio();await startCamera();reader=new ZXingBrowser.BrowserMultiFormatReader();active=true;reader.decodeFromVideoDevice(null,video,(result,err)=>{if(!active)return;if(result){const txt=result.text.trim();if(txt&&txt!==lastText){lastText=txt;beep();openViewer(txt);}}});}
+function stopScanner(){active=false;if(reader){try{reader.reset();}catch{}}if(currentStream){currentStream.getTracks().forEach(t=>t.stop());currentStream=null;}}
+function openViewer(url){stopScanner();scanner.style.display='none';viewer.style.display='flex';try{new URL(url);frame.src=url;}catch{frame.srcdoc=`<p style='padding:20px;font-family:sans-serif'>Invalid QR: ${url}</p>`;}}
+function backToScanner(){frame.src='about:blank';viewer.style.display='none';scanner.style.display='flex';startScanner();}
+startBtn.onclick=()=>{start.style.display='none';scanner.style.display='flex';startScanner();};
+flashBtn.onclick=()=>setTorch(!torchOn);
+soundBtn.onclick=()=>{beepOn=!beepOn;soundBtn.textContent=beepOn?'🔊 Sound on':'🔇 Sound off';showToast(beepOn?'Sound on':'Sound off');};
+backBtn.onclick=()=>backToScanner();
+document.addEventListener('gesturestart',e=>e.preventDefault());
 </script>
 </body>
 </html>
