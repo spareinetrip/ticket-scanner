@@ -12,13 +12,10 @@
 <link rel="apple-touch-icon" href="icon-192.png" />
 
 <style>
-  :root{
-    --fg:#0b0b0c; --muted:#6b7280; --tint:#0a84ff; --shadow:0 12px 30px rgba(0,0,0,.10);
-    --bot-offset:16px; /* overschreven in JS voor Safari (niet-standalone) */
-  }
+  :root{ --fg:#0b0b0c; --muted:#6b7280; --tint:#0a84ff; --shadow:0 12px 30px rgba(0,0,0,.10); --bot-offset:16px; }
   html,body{height:100%; min-height:100svh}
   body{
-    margin:0; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
+    margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
     background:linear-gradient(180deg,#fff 0%,#eef2f7 100%);
     color:var(--fg);
     overflow:hidden; overscroll-behavior:none; -webkit-font-smoothing:antialiased;
@@ -28,32 +25,28 @@
   .center{position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:18px}
 
   .card{
-    background:#fff; border:1px solid rgba(0,0,0,.06); border-radius:24px; box-shadow:var(--shadow);
-    padding:36px 40px; text-align:center; max-width:520px;
-    width:min(520px, calc(100% - 56px));  /* altijd marge links/rechts */
-    margin:0 28px;
+    background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:24px;box-shadow:var(--shadow);
+    padding:36px 40px;text-align:center;max-width:520px;
+    width:min(520px, calc(100% - 56px)); margin:0 28px;
   }
-  .btn{-webkit-tap-highlight-color:transparent; border:0; cursor:pointer; font-weight:800; letter-spacing:.2px; border-radius:16px; transition:transform .06s}
+  .btn{-webkit-tap-highlight-color:transparent;border:0;cursor:pointer;font-weight:800;letter-spacing:.2px;border-radius:16px;transition:transform .06s}
   .btn:active{transform:translateY(1px) scale(.98)}
-  .btn-primary{background:var(--tint); color:#fff; padding:18px 22px; font-size:18px; box-shadow:var(--shadow)}
+  .btn-primary{background:var(--tint);color:#fff;padding:18px 22px;font-size:18px;box-shadow:var(--shadow)}
+  .app-title{font-weight:900;font-size:18px;text-align:center;margin:0 0 18px}
 
+  .camera-box{position:relative;width:min(88vw,620px);aspect-ratio:1/1;border-radius:24px;overflow:hidden;background:#000;border:1px solid rgba(0,0,0,.18);box-shadow:0 18px 44px rgba(0,0,0,.22),inset 0 0 0 1px rgba(255,255,255,.06)}
+  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+  .corners{position:absolute;inset:12px;border-radius:18px;border:3px solid rgba(255,255,255,.92);pointer-events:none}
+
+  .dock{display:flex;gap:12px;justify-content:center}
   .pill{
-    display:inline-flex; align-items:center; gap:10px;
-    border-radius:999px; padding:12px 18px; background:#fff;
-    border:1px solid rgba(0,0,0,.06); box-shadow:0 8px 20px rgba(0,0,0,.08); font-weight:800
+    display:inline-flex;align-items:center;gap:10px;
+    border-radius:999px;padding:12px 18px;background:#fff;
+    border:1px solid rgba(0,0,0,.06); box-shadow:0 8px 20px rgba(0,0,0,.08);
+    font-weight:800
   }
   .pill .dot{width:10px;height:10px;border-radius:50%;background:#d1d5db;box-shadow:0 0 0 2px rgba(0,0,0,.06)}
   .pill.on .dot{background:#34c759; box-shadow:0 0 0 2px rgba(52,199,89,.25)}
-
-  .app-title{font-weight:900; font-size:18px; text-align:center; margin:0 0 18px}
-  .camera-box{
-    position:relative; width:min(88vw,620px); aspect-ratio:1/1; border-radius:24px; overflow:hidden;
-    background:#000; border:1px solid rgba(0,0,0,.18);
-    box-shadow:0 18px 44px rgba(0,0,0,.22), inset 0 0 0 1px rgba(255,255,255,.06)
-  }
-  video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
-  .corners{position:absolute; inset:12px; border-radius:18px; border:3px solid rgba(255,255,255,.92); pointer-events:none}
-  .dock{display:flex; gap:12px; justify-content:center}
 
   /* VIEWER */
   #viewer{position:fixed; inset:0; display:none; background:#fff}
@@ -67,9 +60,19 @@
     backdrop-filter:saturate(180%) blur(12px); border:1px solid rgba(255,255,255,.55);
   }
 
-  /* Toast */
+  /* Toast + Help overlay */
   #toast{position:fixed; left:50%; bottom:40%; transform:translate(-50%,50%); background:rgba(0,0,0,.88); color:#fff; padding:8px 12px; border-radius:12px; font-size:13px; opacity:0; transition:opacity .25s}
   #toast.show{opacity:.95}
+  #help{
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    backdrop-filter:blur(4px); background:rgba(255,255,255,.8); z-index:6; text-align:center; padding:24px;
+    color:#111
+  }
+  #help .box{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:20px;box-shadow:var(--shadow);padding:20px;max-width:520px}
+  #help .box h3{margin:0 0 6px;font-size:20px}
+  #help .box p{margin:8px 0 14px;color:#555}
+  #help .box .row{display:flex;gap:10px;justify-content:center}
+  #help .box button{padding:12px 16px;border-radius:12px;border:1px solid rgba(0,0,0,.06);background:#0a84ff;color:#fff;font-weight:800}
 
   /* Loading overlay */
   #loader{
@@ -98,7 +101,7 @@
 <section id="scanner" class="center" style="display:none">
   <h1 class="app-title safe-top">Scanner</h1>
   <div class="camera-box">
-    <video id="video" playsinline></video>
+    <video id="video" playsinline muted></video>
     <div class="corners"></div>
   </div>
   <div class="dock safe-bottom">
@@ -117,10 +120,21 @@
   <button id="backToScan">↩︎ Back to Scanner</button>
 </section>
 
+<div id="help">
+  <div class="box">
+    <h3>Camera access needed</h3>
+    <p>Allow camera access in the prompt, or enable it in Settings. Then tap Retry.</p>
+    <div class="row">
+      <button id="retryBtn">Retry</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
+/* ---------- Elements ---------- */
 const start = document.getElementById('start');
 const scanner = document.getElementById('scanner');
 const viewer = document.getElementById('viewer');
@@ -130,29 +144,71 @@ const startBtn = document.getElementById('startBtn');
 const flashBtn = document.getElementById('flashBtn');
 const soundBtn = document.getElementById('soundBtn');
 const backBtn = document.getElementById('backToScan');
+const retryBtn = document.getElementById('retryBtn');
+const help = document.getElementById('help');
 const video = document.getElementById('video');
 const toast = document.getElementById('toast');
 
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-// lager in Safari (toolbar), laag in A2HS
 document.documentElement.style.setProperty('--bot-offset', isStandalone ? '16px' : '72px');
 
-let audioCtx, beepOn=true, currentStream, torchOn=false, rafId=null, lastText='';
+/* ---------- State ---------- */
+let audioCtx, beepOn=true, currentStream, torchOn=false, lastText='';
+let rafId=null, frameCB=null, running=false, usingBarcodeDetector=false;
 
+/* ---------- Haptics + Beep ---------- */
+function hapticSuccess(){
+  try{
+    if (navigator.haptics?.notificationOccurred) {
+      navigator.haptics.notificationOccurred('success');
+    } else if (navigator.haptics?.impactOccurred) {
+      navigator.haptics.impactOccurred('medium');
+    } else if (navigator.vibrate) {
+      navigator.vibrate(10);
+    }
+  }catch(_){}
+}
 function toastMsg(m){toast.textContent=m;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1000);}
-function ensureAudio(){if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') return audioCtx.resume(); return Promise.resolve();}
-function beep(){ if(!beepOn) return; ensureAudio().then(()=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=880;o.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(0.001,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.2,audioCtx.currentTime+0.02);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);o.start();o.stop(audioCtx.currentTime+0.17);});}
+function ensureAudio(){
+  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') return audioCtx.resume();
+  return Promise.resolve();
+}
+function beep(){ if(!beepOn) return; ensureAudio().then(()=>{
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type='sine'; o.frequency.value=880; o.connect(g); g.connect(audioCtx.destination);
+  g.gain.setValueAtTime(0.001,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.2,audioCtx.currentTime+0.02);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);
+  o.start(); o.stop(audioCtx.currentTime+0.17);
+});}
 
+/* ---------- Camera ---------- */
 async function startCamera(){
-  // stop vorige stream
-  if(currentStream) currentStream.getTracks().forEach(t=>t.stop());
-  const constraints={ video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} } };
-  try{ currentStream = await navigator.mediaDevices.getUserMedia(constraints); }
-  catch{ currentStream = await navigator.mediaDevices.getUserMedia({ video:true }); }
-  video.srcObject=currentStream; await video.play();
-  // init pill indicators
-  flashBtn.classList.toggle('on', false);
-  soundBtn.classList.toggle('on', beepOn);
+  stopScan();
+  help.style.display='none';
+  const constraints={ video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} }, audio:false };
+  try{
+    currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = currentStream;
+    await video.play().catch(()=>{});
+    const track = currentStream.getVideoTracks()[0];
+    if(track && track.readyState==='live'){ // start scanning
+      startLoops();
+      return true;
+    }
+  }catch(err){
+    console.warn('getUserMedia error', err);
+    help.style.display='flex';
+    return false;
+  }
+}
+
+function stopScan(){
+  running=false;
+  if(rafId){ cancelAnimationFrame(rafId); rafId=null;}
+  if(frameCB){ video.requestVideoFrameCallback && video.cancelVideoFrameCallback && video.cancelVideoFrameCallback(frameCB); frameCB=null; }
+  if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); currentStream=null; }
 }
 
 async function setTorch(on){
@@ -166,31 +222,84 @@ async function setTorch(on){
   }else{ toastMsg('Flash not supported'); }
 }
 
-/* jsQR loop */
+/* ---------- Scan engine ---------- */
 const canvas=document.createElement('canvas');
 const ctx=canvas.getContext('2d',{willReadFrequently:true});
 
-function loop(){
-  if(!video.videoWidth || !video.videoHeight){ rafId=requestAnimationFrame(loop); return; }
-  const vw=video.videoWidth, vh=video.videoHeight, size=Math.min(vw,vh);
-  const sx=(vw-size)/2, sy=(vh-size)/2, OUT=480;
-  canvas.width=OUT; canvas.height=OUT;
-  ctx.drawImage(video, sx, sy, size, size, 0, 0, OUT, OUT);
-  const img=ctx.getImageData(0,0,OUT,OUT);
-  const res=jsQR(img.data, OUT, OUT, { inversionAttempts:"dontInvert" });
-  if(res && res.data){
-    const txt=(res.data||'').trim();
-    if(txt && txt!==lastText){ lastText=txt; beep(); openViewer(txt); return; }
-  }
-  rafId=requestAnimationFrame(loop);
+const barcode = (()=>{
+  try{
+    if('BarcodeDetector' in window){
+      const bd = new window.BarcodeDetector({ formats:['qr_code'] });
+      return bd;
+    }
+  }catch(_){}
+  return null;
+})();
+
+function handleResult(txt){
+  const data=(txt||'').trim();
+  if(!data || data===lastText) return;
+  lastText=data;
+  hapticSuccess(); beep();
+  openViewer(data);
 }
 
-async function startScan(){ await ensureAudio(); await startCamera(); lastText=''; if(rafId) cancelAnimationFrame(rafId); loop(); }
-function stopScan(){ if(rafId) cancelAnimationFrame(rafId), rafId=null; if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); currentStream=null; } }
+function startLoops(){
+  running=true; lastText='';
+  usingBarcodeDetector = !!barcode;
+  if(usingBarcodeDetector){
+    // Prefer requestVideoFrameCallback for iOS Safari 16.4+
+    const tick = ()=> {
+      if(!running) return;
+      barcode.detect(video).then(codes=>{
+        if(codes && codes.length) handleResult(codes[0].rawValue || codes[0].rawValue || codes[0].rawValue);
+      }).catch(()=>{ /* ignore */});
+      schedule();
+    };
+    const schedule = ()=>{
+      if(video.requestVideoFrameCallback){
+        frameCB = video.requestVideoFrameCallback(()=>tick());
+      }else{
+        rafId = requestAnimationFrame(()=> setTimeout(tick, 60)); // ~16fps throttle
+      }
+    };
+    schedule();
+  }else{
+    // jsQR path
+    let lastTime=0;
+    const step = (now)=>{
+      if(!running) return;
+      if(now - lastTime < 80){ rafId=requestAnimationFrame(step); return; } // ~12fps
+      lastTime = now;
+      const vw=video.videoWidth, vh=video.videoHeight;
+      if(vw && vh){
+        const size=Math.min(vw,vh), sx=(vw-size)/2, sy=(vh-size)/2, OUT=480;
+        canvas.width=OUT; canvas.height=OUT;
+        ctx.drawImage(video, sx, sy, size, size, 0, 0, OUT, OUT);
+        const img=ctx.getImageData(0,0,OUT,OUT);
+        const res=jsQR(img.data, OUT, OUT, { inversionAttempts:"dontInvert" });
+        if(res && res.data){ handleResult(res.data); return; }
+      }
+      rafId=requestAnimationFrame(step);
+    };
+    rafId=requestAnimationFrame(step);
+  }
+}
 
+/* ---------- Watchdogs ---------- */
+function monitorCamera(){
+  const track = currentStream && currentStream.getVideoTracks()[0];
+  if(!track || track.readyState==='ended' || video.readyState<2){
+    startCamera().catch(()=>{});
+  }
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) monitorCamera(); });
+navigator.mediaDevices && navigator.mediaDevices.addEventListener?.('devicechange', monitorCamera);
+setInterval(monitorCamera, 2000);
+
+/* ---------- Viewer ---------- */
 function openViewer(url){
   stopScan();
-  // forceer scale=1.0 voor juiste fit in Apps Script
   try{ const u=new URL(url); if(!u.searchParams.has('scale')) u.searchParams.set('scale','1.0'); url=u.toString(); }catch{}
   viewer.style.display='block';
   loader.classList.add('active'); frame.style.opacity='0';
@@ -202,27 +311,21 @@ function backToScanner(){
   frame.src='about:blank';
   viewer.style.display='none';
   scanner.style.display='flex';
-  startScan();
+  startCamera();
 }
 
-/* Watchdog: herstel camera als die stopt of na terugkeren */
-function monitorCamera(){
-  const track = currentStream && currentStream.getVideoTracks()[0];
-  if(!track || track.readyState==='ended' || video.readyState<2){
-    startCamera().catch(()=>{}); // triggert iOS prompt indien nodig
-  }
-}
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) monitorCamera(); });
-navigator.mediaDevices && navigator.mediaDevices.addEventListener?.('devicechange', monitorCamera);
-setInterval(monitorCamera, 2000);
-
-/* UI */
-startBtn.onclick=()=>{ start.style.display='none'; scanner.style.display='flex'; startScan(); };
+/* ---------- UI ---------- */
+startBtn.onclick=async ()=>{ start.style.display='none'; scanner.style.display='flex'; await startCamera(); };
 flashBtn.onclick=()=> setTorch(!torchOn);
 soundBtn.onclick=()=>{ beepOn=!beepOn; soundBtn.classList.toggle('on',beepOn); toastMsg(beepOn?'Sound on':'Sound off'); };
 backBtn.onclick=()=> backToScanner();
+retryBtn.onclick=()=> startCamera();
 
-/* iOS: geen pinch-zoom */
+/* Initial indicators */
+flashBtn.classList.toggle('on', false);
+soundBtn.classList.toggle('on', true);
+
+/* Prevent pinch-zoom */
 document.addEventListener('gesturestart', e=>e.preventDefault());
 </script>
 </body>
