@@ -21,7 +21,7 @@
   .safe-bottom{padding-bottom:calc(env(safe-area-inset-bottom)+16px)}
   .center{height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px}
   .card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:24px;box-shadow:var(--shadow);
-        padding:28px 26px;text-align:center;max-width:520px;width:calc(100% - 32px);margin:0 16px}
+        padding:24px 18px;text-align:center;max-width:520px;width:calc(100% - 32px);margin:0 40px}
   .btn{-webkit-tap-highlight-color:transparent;border:0;cursor:pointer;font-weight:800;letter-spacing:.2px;border-radius:16px;transition:transform .06s}
   .btn:active{transform:translateY(1px) scale(.98)}
   .btn-primary{background:var(--tint);color:#fff;padding:18px 22px;font-size:18px;box-shadow:var(--shadow)}
@@ -74,8 +74,9 @@
 
 <div id="toast"></div>
 
-<!-- ZXing fallback -->
-<script src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js"></script>
+<!-- jsQR (pure JS decoder) -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
 <script>
 const start = document.getElementById('start');
 const scanner = document.getElementById('scanner');
@@ -88,7 +89,7 @@ const backBtn = document.getElementById('backToScan');
 const video = document.getElementById('video');
 const toast = document.getElementById('toast');
 
-let audioCtx, beepOn=true, currentStream, torchOn=false, reader, lastText='', active=false;
+let audioCtx, beepOn=true, currentStream, torchOn=false, rafId=null, lastText='';
 
 function toastMsg(m){toast.textContent=m;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1000);}
 function ensureAudio(){if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') return audioCtx.resume(); return Promise.resolve();}
@@ -97,9 +98,10 @@ function beep(){ if(!beepOn) return; ensureAudio().then(()=>{const o=audioCtx.cr
 async function startCamera(){
   if(currentStream) currentStream.getTracks().forEach(t=>t.stop());
   const constraints={ video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} } };
-  try { currentStream = await navigator.mediaDevices.getUserMedia(constraints); }
-  catch { currentStream = await navigator.mediaDevices.getUserMedia({ video:true }); }
-  video.srcObject=currentStream; await video.play();
+  try{ currentStream = await navigator.mediaDevices.getUserMedia(constraints); }
+  catch{ currentStream = await navigator.mediaDevices.getUserMedia({ video:true }); }
+  video.srcObject=currentStream;
+  await video.play();
 }
 
 async function setTorch(on){
@@ -110,58 +112,49 @@ async function setTorch(on){
   }else{ toastMsg('Flash not supported'); }
 }
 
-/* ---- Robust scanning: BarcodeDetector first, fallback to ZXing ---- */
-let bdLoop=null;
-async function startScanLoop(){
-  await ensureAudio();
-  await startCamera();
-  active=true; lastText='';
+/* === jsQR scan loop (canvas) === */
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-  if ('BarcodeDetector' in window) {
-    const detector = new BarcodeDetector({ formats: ['qr_code'] });
-    const loop = async () => {
-      if(!active) return;
-      try{
-        const codes = await detector.detect(video);
-        if (codes && codes.length){
-          const txt = (codes[0].rawValue || '').trim();
-          if (txt && txt !== lastText){
-            lastText = txt; beep(); openViewer(txt); return;
-          }
-        }
-      } catch(_){ /* keep looping */ }
-      bdLoop = requestAnimationFrame(loop);
-    };
-    loop();
-    return;
-  }
+function loop(){
+  if (!video.videoWidth || !video.videoHeight) { rafId = requestAnimationFrame(loop); return; }
+  // Neem een vierkant middenstuk uit de videofeed (beste voor QR)
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const size = Math.min(vw, vh);
+  const sx = (vw - size) / 2, sy = (vh - size) / 2;
 
-  // Fallback: ZXing
-  const { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } = window.ZXingBrowser || {};
-  const hints = new Map();
-  if (DecodeHintType && BarcodeFormat) {
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
-    hints.set(DecodeHintType.TRY_HARDER, true);
-  }
-  reader = new (BrowserMultiFormatReader || function(){ return { decodeFromVideoDevice:()=>{}, reset:()=>{} }; })(hints);
-  reader.decodeFromVideoDevice(null, video, (result, err) => {
-    if(!active) return;
-    if (result) {
-      const txt = (result.text || '').trim();
-      if (txt && txt !== lastText){ lastText = txt; beep(); openViewer(txt); }
+  // Schaal naar 480x480 voor performance & betrouwbaarheid
+  const OUT = 480;
+  canvas.width = OUT; canvas.height = OUT;
+  ctx.drawImage(video, sx, sy, size, size, 0, 0, OUT, OUT);
+
+  const img = ctx.getImageData(0, 0, OUT, OUT);
+  const res = jsQR(img.data, OUT, OUT, { inversionAttempts: "dontInvert" });
+
+  if (res && res.data) {
+    const txt = (res.data || '').trim();
+    if (txt && txt !== lastText) {
+      lastText = txt; beep(); openViewer(txt); return;
     }
-  });
+  }
+  rafId = requestAnimationFrame(loop);
 }
 
-function stopScanLoop(){
-  active=false;
-  if (bdLoop) cancelAnimationFrame(bdLoop), bdLoop=null;
-  if (reader){ try{ reader.reset(); }catch{} }
+async function startScan(){
+  await ensureAudio();
+  await startCamera();
+  lastText = '';
+  if (rafId) cancelAnimationFrame(rafId);
+  loop();
+}
+
+function stopScan(){
+  if (rafId) cancelAnimationFrame(rafId), rafId=null;
   if (currentStream){ currentStream.getTracks().forEach(t=>t.stop()); currentStream=null; }
 }
 
 function openViewer(url){
-  stopScanLoop();
+  stopScan();
   scanner.style.display='none';
   viewer.style.display='flex';
   try { new URL(url); frame.src = url; }
@@ -172,17 +165,17 @@ function backToScanner(){
   frame.src='about:blank';
   viewer.style.display='none';
   scanner.style.display='flex';
-  startScanLoop();
+  startScan();
 }
 
 /* UI */
-startBtn.onclick=()=>{ start.style.display='none'; scanner.style.display='flex'; startScanLoop(); };
-flashBtn.onclick=()=>setTorch(!torchOn);
-soundBtn.onclick=()=>{ beepOn=!beepOn; soundBtn.textContent=beepOn?'🔊 Sound on':'🔇 Sound off'; toastMsg(beepOn?'Sound on':'Sound off'); };
-backBtn.onclick=()=>backToScanner();
+startBtn.onclick = ()=>{ start.style.display='none'; scanner.style.display='flex'; startScan(); };
+flashBtn.onclick = ()=> setTorch(!torchOn);
+soundBtn.onclick = ()=>{ beepOn=!beepOn; soundBtn.textContent = beepOn ? '🔊 Sound on' : '🔇 Sound off'; toastMsg(beepOn?'Sound on':'Sound off'); };
+backBtn.onclick = ()=> backToScanner();
 
-/* Prevent pinch-zoom in standalone */
-document.addEventListener('gesturestart',e=>e.preventDefault());
+/* iOS: voorkom pinch-zoom in standalone */
+document.addEventListener('gesturestart', e => e.preventDefault());
 </script>
 </body>
 </html>
