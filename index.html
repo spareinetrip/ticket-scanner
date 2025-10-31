@@ -12,67 +12,56 @@
 <link rel="apple-touch-icon" href="icon-192.png" />
 
 <style>
-  :root{
-    --fg:#0b0b0c; --muted:#6b7280; --tint:#0a84ff; --shadow:0 12px 30px rgba(0,0,0,.10);
-    --bot-offset: 16px; /* overschreven in JS als niet-standalone */
-  }
+  :root{ --fg:#0b0b0c; --muted:#6b7280; --tint:#0a84ff; --shadow:0 12px 30px rgba(0,0,0,.10); --bot-offset:16px; }
   html,body{height:100%}
   body{
-    margin:0; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
+    margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
     background:linear-gradient(180deg,#fff 0%,#eef2f7 100%);
     color:var(--fg);
-    overflow:hidden;                /* geen scroll/witte onderbalk */
-    overscroll-behavior:none;       /* geen bounce */
-    -webkit-font-smoothing:antialiased;
+    overflow:hidden; overscroll-behavior:none; -webkit-font-smoothing:antialiased;
   }
   .safe-top{padding-top:calc(env(safe-area-inset-top)+16px)}
   .safe-bottom{padding-bottom:calc(env(safe-area-inset-bottom)+16px)}
   .center{position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:18px}
   .card{
-    background:#fff; border:1px solid rgba(0,0,0,.06); border-radius:24px; box-shadow:var(--shadow);
-    padding:36px 40px; text-align:center; max-width:520px; width:calc(100% - 56px); margin:0 28px;
+    background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:24px;box-shadow:var(--shadow);
+    padding:36px 40px;text-align:center;max-width:520px;width:calc(100% - 56px);margin:0 60px;
   }
-  .btn{-webkit-tap-highlight-color:transparent; border:0; cursor:pointer; font-weight:800; letter-spacing:.2px; border-radius:16px; transition:transform .06s}
+  .btn{-webkit-tap-highlight-color:transparent;border:0;cursor:pointer;font-weight:800;letter-spacing:.2px;border-radius:16px;transition:transform .06s}
   .btn:active{transform:translateY(1px) scale(.98)}
-  .btn-primary{background:var(--tint); color:#fff; padding:18px 22px; font-size:18px; box-shadow:var(--shadow)}
-  .pill{border-radius:999px; padding:12px 16px; background:#fff; border:1px solid rgba(0,0,0,.06); box-shadow:0 8px 20px rgba(0,0,0,.08); font-weight:800}
-  .app-title{font-weight:900; font-size:18px; text-align:center; margin:0 0 18px}
-  .camera-box{position:relative; width:min(88vw,620px); aspect-ratio:1/1; border-radius:24px; overflow:hidden; background:#000; border:1px solid rgba(0,0,0,.18); box-shadow:0 18px 44px rgba(0,0,0,.22), inset 0 0 0 1px rgba(255,255,255,.06)}
-  video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
-  .corners{position:absolute; inset:12px; border-radius:18px; border:3px solid rgba(255,255,255,.92); pointer-events:none}
-  .dock{display:flex; gap:12px; justify-content:center}
+  .btn-primary{background:var(--tint);color:#fff;padding:18px 22px;font-size:18px;box-shadow:var(--shadow)}
+  .pill{position:relative;border-radius:999px;padding:12px 18px;background:#fff;border:1px solid rgba(0,0,0,.06);box-shadow:0 8px 20px rgba(0,0,0,.08);font-weight:800}
+  .pill.on::after{content:"";position:absolute;right:12px;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;background:#34c759;box-shadow:0 0 0 2px rgba(52,199,89,.25)}
+  .app-title{font-weight:900;font-size:18px;text-align:center;margin:0 0 18px}
+  .camera-box{position:relative;width:min(88vw,620px);aspect-ratio:1/1;border-radius:24px;overflow:hidden;background:#000;border:1px solid rgba(0,0,0,.18);box-shadow:0 18px 44px rgba(0,0,0,.22),inset 0 0 0 1px rgba(255,255,255,.06)}
+  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .corners{position:absolute;inset:12px;border-radius:18px;border:3px solid rgba(255,255,255,.92);pointer-events:none}
+  .dock{display:flex;gap:12px;justify-content:center}
 
   /* VIEWER */
-  #viewer{position:fixed; inset:0; display:none; flex-direction:column; background:#fff}
-  #frame{flex:1; width:100%; border:0; opacity:0; transition:opacity .25s ease}
-  /* iOS bottom primary button (frosted) */
+  #viewer{position:fixed; inset:0; display:none; background:#fff}
+  #frame{position:absolute; inset:0; width:100%; height:100%; border:0; opacity:0; transition:opacity .25s ease}
   #backToScan{
     position:fixed; left:5%; right:5%;
     bottom:calc(env(safe-area-inset-bottom) + var(--bot-offset));
     padding:16px 18px; background:rgba(10,132,255,.92); color:#fff;
-    border-radius:18px; font-weight:900; box-shadow:0 10px 30px rgba(10,132,255,.35), 0 1px 0 rgba(255,255,255,.35) inset;
-    backdrop-filter:saturate(180%) blur(12px);
-    border:1px solid rgba(255,255,255,.55);
-    text-align:center;
+    border-radius:18px; font-weight:900; text-align:center;
+    box-shadow:0 10px 30px rgba(10,132,255,.35), 0 1px 0 rgba(255,255,255,.35) inset;
+    backdrop-filter:saturate(180%) blur(12px); border:1px solid rgba(255,255,255,.55);
   }
 
-  /* Toast (blijft voor feedback) */
+  /* Toast */
   #toast{position:fixed; left:50%; bottom:40%; transform:translate(-50%,50%); background:rgba(0,0,0,.88); color:#fff; padding:8px 12px; border-radius:12px; font-size:13px; opacity:0; transition:opacity .25s}
   #toast.show{opacity:.95}
 
-  /* Loading overlay (Apple-achtig) */
+  /* Loading overlay */
   #loader{
     position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    background:linear-gradient(180deg,#fff 0%, #f6f7fb 100%);
-    z-index:5; opacity:0; pointer-events:none; transition:opacity .25s ease;
+    background:linear-gradient(180deg,#fff 0%, #f6f7fb 100%); z-index:5; opacity:0; pointer-events:none; transition:opacity .25s ease;
   }
   #loader.active{opacity:1}
-  .spinner{
-    width:38px; height:38px; border-radius:50%;
-    border:3px solid rgba(0,0,0,.12); border-top-color:#0a84ff;
-    animation:spin .9s linear infinite;
-  }
-  .loading-text{ margin-top:12px; color:#6b7280; font-weight:700; letter-spacing:.2px; font-size:13px; }
+  .spinner{width:38px;height:38px;border-radius:50%;border:3px solid rgba(0,0,0,.12);border-top-color:#0a84ff;animation:spin .9s linear infinite}
+  .loading-text{margin-top:12px;color:#6b7280;font-weight:700;letter-spacing:.2px;font-size:13px}
   @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -97,7 +86,7 @@
   </div>
   <div class="dock safe-bottom">
     <button id="flashBtn" class="pill">🔦 Flash</button>
-    <button id="soundBtn" class="pill">🔊 Sound on</button>
+    <button id="soundBtn" class="pill">🎧 Sound</button>
   </div>
 </section>
 
@@ -113,9 +102,7 @@
 
 <div id="toast"></div>
 
-<!-- jsQR (stabiele decoder op iOS) -->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-
 <script>
 const start = document.getElementById('start');
 const scanner = document.getElementById('scanner');
@@ -130,7 +117,6 @@ const video = document.getElementById('video');
 const toast = document.getElementById('toast');
 
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-// Knop hoger zetten in Safari (toolbar), laag in A2HS.
 document.documentElement.style.setProperty('--bot-offset', isStandalone ? '16px' : '90px');
 
 let audioCtx, beepOn=true, currentStream, torchOn=false, rafId=null, lastText='';
@@ -151,11 +137,11 @@ async function setTorch(on){
   const track=currentStream && currentStream.getVideoTracks()[0]; if(!track) return;
   const caps=track.getCapabilities && track.getCapabilities();
   if(caps && 'torch' in caps){
-    try{ await track.applyConstraints({ advanced:[{ torch:on }] }); torchOn=on; toastMsg(on?'Flash on':'Flash off'); }catch{}
+    try{ await track.applyConstraints({ advanced:[{ torch:on }] }); torchOn=on; flashBtn.classList.toggle('on', on); toastMsg(on?'Flash on':'Flash off'); }catch{}
   }else{ toastMsg('Flash not supported'); }
 }
 
-/* === jsQR scan loop === */
+/* jsQR loop */
 const canvas=document.createElement('canvas');
 const ctx=canvas.getContext('2d',{willReadFrequently:true});
 
@@ -179,12 +165,9 @@ function stopScan(){ if(rafId) cancelAnimationFrame(rafId), rafId=null; if(curre
 
 function openViewer(url){
   stopScan();
-  // voeg scale=1.0 toe voor perfecte iFrame-fit
   try{ const u=new URL(url); if(!u.searchParams.has('scale')) u.searchParams.set('scale','1.0'); url=u.toString(); }catch{}
-  // Toon viewer + loader
-  viewer.style.display='flex';
-  loader.classList.add('active');
-  frame.style.opacity='0';
+  viewer.style.display='block';
+  loader.classList.add('active'); frame.style.opacity='0';
   frame.src=url;
 }
 frame.onload=()=>{ loader.classList.remove('active'); frame.style.opacity='1'; };
@@ -199,7 +182,7 @@ function backToScanner(){
 /* UI */
 startBtn.onclick=()=>{ start.style.display='none'; scanner.style.display='flex'; startScan(); };
 flashBtn.onclick=()=> setTorch(!torchOn);
-soundBtn.onclick=()=>{ beepOn=!beepOn; soundBtn.textContent=beepOn?'🔊 Sound on':'🔇 Sound off'; toastMsg(beepOn?'Sound on':'Sound off'); };
+soundBtn.onclick=()=>{ beepOn=!beepOn; soundBtn.classList.toggle('on', beepOn); toastMsg(beepOn?'Sound on':'Sound off'); };
 backBtn.onclick=()=> backToScanner();
 
 /* iOS: geen pinch-zoom */
