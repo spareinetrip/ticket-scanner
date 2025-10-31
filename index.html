@@ -6,48 +6,73 @@
 <title>Ticket Scanner</title>
 
 <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a84ff">
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <link rel="apple-touch-icon" href="icon-192.png" />
 
 <style>
-  :root{--fg:#0b0b0c;--muted:#6b7280;--tint:#0a84ff;--shadow:0 12px 30px rgba(0,0,0,.10)}
+  :root{
+    --fg:#0b0b0c; --muted:#6b7280; --tint:#0a84ff; --shadow:0 12px 30px rgba(0,0,0,.10);
+    --bot-offset: 16px; /* overschreven in JS als niet-standalone */
+  }
   html,body{height:100%}
   body{
-    margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
-    background:linear-gradient(180deg,#fff 0%,#eef2f7 100%);color:var(--fg);overflow:hidden
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
+    background:linear-gradient(180deg,#fff 0%,#eef2f7 100%);
+    color:var(--fg);
+    overflow:hidden;                /* geen scroll/witte onderbalk */
+    overscroll-behavior:none;       /* geen bounce */
+    -webkit-font-smoothing:antialiased;
   }
   .safe-top{padding-top:calc(env(safe-area-inset-top)+16px)}
   .safe-bottom{padding-bottom:calc(env(safe-area-inset-bottom)+16px)}
-  .center{height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px}
-  .card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:24px;box-shadow:var(--shadow);
-        padding:36px 40px;text-align:center;max-width:520px;width:calc(100% - 56px);margin:0 28px}
-  .btn{-webkit-tap-highlight-color:transparent;border:0;cursor:pointer;font-weight:800;letter-spacing:.2px;border-radius:16px;transition:transform .06s}
+  .center{position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:18px}
+  .card{
+    background:#fff; border:1px solid rgba(0,0,0,.06); border-radius:24px; box-shadow:var(--shadow);
+    padding:36px 40px; text-align:center; max-width:520px; width:calc(100% - 56px); margin:0 28px;
+  }
+  .btn{-webkit-tap-highlight-color:transparent; border:0; cursor:pointer; font-weight:800; letter-spacing:.2px; border-radius:16px; transition:transform .06s}
   .btn:active{transform:translateY(1px) scale(.98)}
-  .btn-primary{background:var(--tint);color:#fff;padding:18px 22px;font-size:18px;box-shadow:var(--shadow)}
-  .pill{border-radius:999px;padding:12px 16px;background:#fff;border:1px solid rgba(0,0,0,.06);box-shadow:0 8px 20px rgba(0,0,0,.08);font-weight:800}
-  .app-title{font-weight:900;font-size:18px;text-align:center;margin:0 0 18px}
-  .camera-box{position:relative;width:min(88vw,620px);aspect-ratio:1/1;border-radius:24px;overflow:hidden;background:#000;border:1px solid rgba(0,0,0,.18);box-shadow:0 18px 44px rgba(0,0,0,.22),inset 0 0 0 1px rgba(255,255,255,.06)}
-  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-  .corners{position:absolute;inset:12px;border-radius:18px;border:3px solid rgba(255,255,255,.92);pointer-events:none}
-  .dock{display:flex;gap:12px;justify-content:center}
-  #viewer{display:none;flex-direction:column;height:100vh;position:relative}
-  #viewer iframe{flex:1;width:100%;border:0;opacity:0;transition:opacity .3s ease;background:transparent;transform:scale(1)}
-  #viewer .backBtn{position:fixed;left:5%;right:5%;bottom:calc(env(safe-area-inset-bottom)+var(--bot,16px));
-                   padding:18px;background:var(--tint);color:#fff;border-radius:14px;font-weight:800;max-width:340px;margin:0 auto}
-  #toast{position:fixed;left:50%;bottom:40%;transform:translate(-50%,50%);background:rgba(0,0,0,.88);color:#fff;padding:8px 12px;border-radius:12px;font-size:13px;opacity:0;transition:opacity .25s}
+  .btn-primary{background:var(--tint); color:#fff; padding:18px 22px; font-size:18px; box-shadow:var(--shadow)}
+  .pill{border-radius:999px; padding:12px 16px; background:#fff; border:1px solid rgba(0,0,0,.06); box-shadow:0 8px 20px rgba(0,0,0,.08); font-weight:800}
+  .app-title{font-weight:900; font-size:18px; text-align:center; margin:0 0 18px}
+  .camera-box{position:relative; width:min(88vw,620px); aspect-ratio:1/1; border-radius:24px; overflow:hidden; background:#000; border:1px solid rgba(0,0,0,.18); box-shadow:0 18px 44px rgba(0,0,0,.22), inset 0 0 0 1px rgba(255,255,255,.06)}
+  video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+  .corners{position:absolute; inset:12px; border-radius:18px; border:3px solid rgba(255,255,255,.92); pointer-events:none}
+  .dock{display:flex; gap:12px; justify-content:center}
+
+  /* VIEWER */
+  #viewer{position:fixed; inset:0; display:none; flex-direction:column; background:#fff}
+  #frame{flex:1; width:100%; border:0; opacity:0; transition:opacity .25s ease}
+  /* iOS bottom primary button (frosted) */
+  #backToScan{
+    position:fixed; left:5%; right:5%;
+    bottom:calc(env(safe-area-inset-bottom) + var(--bot-offset));
+    padding:16px 18px; background:rgba(10,132,255,.92); color:#fff;
+    border-radius:18px; font-weight:900; box-shadow:0 10px 30px rgba(10,132,255,.35), 0 1px 0 rgba(255,255,255,.35) inset;
+    backdrop-filter:saturate(180%) blur(12px);
+    border:1px solid rgba(255,255,255,.55);
+    text-align:center;
+  }
+
+  /* Toast (blijft voor feedback) */
+  #toast{position:fixed; left:50%; bottom:40%; transform:translate(-50%,50%); background:rgba(0,0,0,.88); color:#fff; padding:8px 12px; border-radius:12px; font-size:13px; opacity:0; transition:opacity .25s}
   #toast.show{opacity:.95}
-  footer{position:absolute;bottom:10px;width:100%;text-align:center;color:var(--muted);font-size:12px}
-  /* Spinner overlay */
+
+  /* Loading overlay (Apple-achtig) */
   #loader{
-    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    background:#fff;z-index:2;opacity:0;transition:opacity .3s ease;pointer-events:none
+    position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:linear-gradient(180deg,#fff 0%, #f6f7fb 100%);
+    z-index:5; opacity:0; pointer-events:none; transition:opacity .25s ease;
   }
   #loader.active{opacity:1}
   .spinner{
-    width:40px;height:40px;border:4px solid rgba(0,0,0,.15);border-top-color:var(--tint);
-    border-radius:50%;animation:spin 0.9s linear infinite
+    width:38px; height:38px; border-radius:50%;
+    border:3px solid rgba(0,0,0,.12); border-top-color:#0a84ff;
+    animation:spin .9s linear infinite;
   }
+  .loading-text{ margin-top:12px; color:#6b7280; font-weight:700; letter-spacing:.2px; font-size:13px; }
   @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -61,7 +86,6 @@
     <p style="margin:0 0 18px;color:var(--muted)">Use the rear camera. Flash & sound available in scanner.</p>
     <button id="startBtn" class="btn btn-primary">Start</button>
   </div>
-  <footer class="safe-bottom">Add to Home Screen for full-screen experience.</footer>
 </section>
 
 <!-- SCANNER -->
@@ -79,14 +103,19 @@
 
 <!-- VIEWER -->
 <section id="viewer">
-  <div id="loader"><div class="spinner"></div></div>
+  <div id="loader" class="active">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading ticket…</div>
+  </div>
   <iframe id="frame" sandbox="allow-scripts allow-forms allow-same-origin allow-popups"></iframe>
-  <button id="backToScan" class="backBtn safe-bottom">↩︎ Back to Scanner</button>
+  <button id="backToScan">↩︎ Back to Scanner</button>
 </section>
 
 <div id="toast"></div>
 
+<!-- jsQR (stabiele decoder op iOS) -->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
 <script>
 const start = document.getElementById('start');
 const scanner = document.getElementById('scanner');
@@ -99,8 +128,10 @@ const soundBtn = document.getElementById('soundBtn');
 const backBtn = document.getElementById('backToScan');
 const video = document.getElementById('video');
 const toast = document.getElementById('toast');
+
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-document.documentElement.style.setProperty('--bot', isStandalone ? '16px' : '90px');
+// Knop hoger zetten in Safari (toolbar), laag in A2HS.
+document.documentElement.style.setProperty('--bot-offset', isStandalone ? '16px' : '90px');
 
 let audioCtx, beepOn=true, currentStream, torchOn=false, rafId=null, lastText='';
 
@@ -113,8 +144,7 @@ async function startCamera(){
   const constraints={ video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} } };
   try{ currentStream = await navigator.mediaDevices.getUserMedia(constraints); }
   catch{ currentStream = await navigator.mediaDevices.getUserMedia({ video:true }); }
-  video.srcObject=currentStream;
-  await video.play();
+  video.srcObject=currentStream; await video.play();
 }
 
 async function setTorch(on){
@@ -125,51 +155,55 @@ async function setTorch(on){
   }else{ toastMsg('Flash not supported'); }
 }
 
-/* === jsQR scan loop (canvas) === */
-const canvas = document.createElement('canvas');
-const ctx = canvas.getContext('2d', { willReadFrequently: true });
+/* === jsQR scan loop === */
+const canvas=document.createElement('canvas');
+const ctx=canvas.getContext('2d',{willReadFrequently:true});
 
 function loop(){
-  if (!video.videoWidth || !video.videoHeight) { rafId = requestAnimationFrame(loop); return; }
-  const vw = video.videoWidth, vh = video.videoHeight;
-  const size = Math.min(vw, vh);
-  const sx = (vw - size) / 2, sy = (vh - size) / 2;
-  const OUT = 480;
-  canvas.width = OUT; canvas.height = OUT;
+  if(!video.videoWidth || !video.videoHeight){ rafId=requestAnimationFrame(loop); return; }
+  const vw=video.videoWidth, vh=video.videoHeight, size=Math.min(vw,vh);
+  const sx=(vw-size)/2, sy=(vh-size)/2, OUT=480;
+  canvas.width=OUT; canvas.height=OUT;
   ctx.drawImage(video, sx, sy, size, size, 0, 0, OUT, OUT);
-  const img = ctx.getImageData(0, 0, OUT, OUT);
-  const res = jsQR(img.data, OUT, OUT, { inversionAttempts: "dontInvert" });
-  if (res && res.data) {
-    const txt = (res.data || '').trim();
-    if (txt && txt !== lastText) { lastText = txt; beep(); openViewer(txt); return; }
+  const img=ctx.getImageData(0,0,OUT,OUT);
+  const res=jsQR(img.data, OUT, OUT, { inversionAttempts:"dontInvert" });
+  if(res && res.data){
+    const txt=(res.data||'').trim();
+    if(txt && txt!==lastText){ lastText=txt; beep(); openViewer(txt); return; }
   }
-  rafId = requestAnimationFrame(loop);
+  rafId=requestAnimationFrame(loop);
 }
 
-async function startScan(){ await ensureAudio(); await startCamera(); lastText=''; if (rafId) cancelAnimationFrame(rafId); loop(); }
-function stopScan(){ if (rafId) cancelAnimationFrame(rafId), rafId=null; if (currentStream){ currentStream.getTracks().forEach(t=>t.stop()); currentStream=null; } }
+async function startScan(){ await ensureAudio(); await startCamera(); lastText=''; if(rafId) cancelAnimationFrame(rafId); loop(); }
+function stopScan(){ if(rafId) cancelAnimationFrame(rafId), rafId=null; if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); currentStream=null; } }
 
 function openViewer(url){
-  stopScan(); scanner.style.display='none'; viewer.style.display='flex'; loader.classList.add('active'); frame.style.opacity='0';
-  try {
-    const u = new URL(url);
-    if (!u.searchParams.has('scale')) u.searchParams.set('scale','1.0');
-    url = u.toString();
-  } catch(_) {}
-  frame.src = url;
+  stopScan();
+  // voeg scale=1.0 toe voor perfecte iFrame-fit
+  try{ const u=new URL(url); if(!u.searchParams.has('scale')) u.searchParams.set('scale','1.0'); url=u.toString(); }catch{}
+  // Toon viewer + loader
+  viewer.style.display='flex';
+  loader.classList.add('active');
+  frame.style.opacity='0';
+  frame.src=url;
 }
-frame.onload = ()=>{ loader.classList.remove('active'); frame.style.opacity='1'; };
+frame.onload=()=>{ loader.classList.remove('active'); frame.style.opacity='1'; };
 
-function backToScanner(){ frame.src='about:blank'; viewer.style.display='none'; scanner.style.display='flex'; startScan(); }
+function backToScanner(){
+  frame.src='about:blank';
+  viewer.style.display='none';
+  scanner.style.display='flex';
+  startScan();
+}
 
 /* UI */
-startBtn.onclick = ()=>{ start.style.display='none'; scanner.style.display='flex'; startScan(); };
-flashBtn.onclick = ()=> setTorch(!torchOn);
-soundBtn.onclick = ()=>{ beepOn=!beepOn; soundBtn.textContent = beepOn ? '🔊 Sound on' : '🔇 Sound off'; toastMsg(beepOn?'Sound on':'Sound off'); };
-backBtn.onclick = ()=> backToScanner();
+startBtn.onclick=()=>{ start.style.display='none'; scanner.style.display='flex'; startScan(); };
+flashBtn.onclick=()=> setTorch(!torchOn);
+soundBtn.onclick=()=>{ beepOn=!beepOn; soundBtn.textContent=beepOn?'🔊 Sound on':'🔇 Sound off'; toastMsg(beepOn?'Sound on':'Sound off'); };
+backBtn.onclick=()=> backToScanner();
 
-/* iOS: voorkom pinch-zoom */
-document.addEventListener('gesturestart', e => e.preventDefault());
+/* iOS: geen pinch-zoom */
+document.addEventListener('gesturestart', e=>e.preventDefault());
 </script>
 </body>
 </html>
