@@ -12,10 +12,13 @@
 <link rel="apple-touch-icon" href="icon-192.png" />
 
 <style>
-  :root{ --fg:#0b0b0c; --muted:#6b7280; --tint:#0a84ff; --shadow:0 12px 30px rgba(0,0,0,.10); --bot-offset:16px; }
-  html,body{height:100%}
+  :root{
+    --fg:#0b0b0c; --muted:#6b7280; --tint:#0a84ff; --shadow:0 12px 30px rgba(0,0,0,.10);
+    --bot-offset:16px; /* overschreven in JS voor Safari (niet-standalone) */
+  }
+  html,body{height:100%; min-height:100svh}
   body{
-    margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
     background:linear-gradient(180deg,#fff 0%,#eef2f7 100%);
     color:var(--fg);
     overflow:hidden; overscroll-behavior:none; -webkit-font-smoothing:antialiased;
@@ -23,20 +26,34 @@
   .safe-top{padding-top:calc(env(safe-area-inset-top)+16px)}
   .safe-bottom{padding-bottom:calc(env(safe-area-inset-bottom)+16px)}
   .center{position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:18px}
+
   .card{
-    background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:24px;box-shadow:var(--shadow);
-    padding:36px 40px;text-align:center;max-width:520px;width:calc(100% - 56px);margin:0 60px;
+    background:#fff; border:1px solid rgba(0,0,0,.06); border-radius:24px; box-shadow:var(--shadow);
+    padding:36px 40px; text-align:center; max-width:520px;
+    width:min(520px, calc(100% - 56px));  /* altijd marge links/rechts */
+    margin:0 28px;
   }
-  .btn{-webkit-tap-highlight-color:transparent;border:0;cursor:pointer;font-weight:800;letter-spacing:.2px;border-radius:16px;transition:transform .06s}
+  .btn{-webkit-tap-highlight-color:transparent; border:0; cursor:pointer; font-weight:800; letter-spacing:.2px; border-radius:16px; transition:transform .06s}
   .btn:active{transform:translateY(1px) scale(.98)}
-  .btn-primary{background:var(--tint);color:#fff;padding:18px 22px;font-size:18px;box-shadow:var(--shadow)}
-  .pill{position:relative;border-radius:999px;padding:12px 18px;background:#fff;border:1px solid rgba(0,0,0,.06);box-shadow:0 8px 20px rgba(0,0,0,.08);font-weight:800}
-  .pill.on::after{content:"";position:absolute;right:12px;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;background:#34c759;box-shadow:0 0 0 2px rgba(52,199,89,.25)}
-  .app-title{font-weight:900;font-size:18px;text-align:center;margin:0 0 18px}
-  .camera-box{position:relative;width:min(88vw,620px);aspect-ratio:1/1;border-radius:24px;overflow:hidden;background:#000;border:1px solid rgba(0,0,0,.18);box-shadow:0 18px 44px rgba(0,0,0,.22),inset 0 0 0 1px rgba(255,255,255,.06)}
-  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-  .corners{position:absolute;inset:12px;border-radius:18px;border:3px solid rgba(255,255,255,.92);pointer-events:none}
-  .dock{display:flex;gap:12px;justify-content:center}
+  .btn-primary{background:var(--tint); color:#fff; padding:18px 22px; font-size:18px; box-shadow:var(--shadow)}
+
+  .pill{
+    display:inline-flex; align-items:center; gap:10px;
+    border-radius:999px; padding:12px 18px; background:#fff;
+    border:1px solid rgba(0,0,0,.06); box-shadow:0 8px 20px rgba(0,0,0,.08); font-weight:800
+  }
+  .pill .dot{width:10px;height:10px;border-radius:50%;background:#d1d5db;box-shadow:0 0 0 2px rgba(0,0,0,.06)}
+  .pill.on .dot{background:#34c759; box-shadow:0 0 0 2px rgba(52,199,89,.25)}
+
+  .app-title{font-weight:900; font-size:18px; text-align:center; margin:0 0 18px}
+  .camera-box{
+    position:relative; width:min(88vw,620px); aspect-ratio:1/1; border-radius:24px; overflow:hidden;
+    background:#000; border:1px solid rgba(0,0,0,.18);
+    box-shadow:0 18px 44px rgba(0,0,0,.22), inset 0 0 0 1px rgba(255,255,255,.06)
+  }
+  video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+  .corners{position:absolute; inset:12px; border-radius:18px; border:3px solid rgba(255,255,255,.92); pointer-events:none}
+  .dock{display:flex; gap:12px; justify-content:center}
 
   /* VIEWER */
   #viewer{position:fixed; inset:0; display:none; background:#fff}
@@ -85,8 +102,8 @@
     <div class="corners"></div>
   </div>
   <div class="dock safe-bottom">
-    <button id="flashBtn" class="pill">🔦 Flash</button>
-    <button id="soundBtn" class="pill">🎧 Sound</button>
+    <button id="flashBtn" class="pill">🔦 Flash <span class="dot"></span></button>
+    <button id="soundBtn" class="pill">🎧 Sound <span class="dot"></span></button>
   </div>
 </section>
 
@@ -117,7 +134,8 @@ const video = document.getElementById('video');
 const toast = document.getElementById('toast');
 
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-document.documentElement.style.setProperty('--bot-offset', isStandalone ? '16px' : '90px');
+// lager in Safari (toolbar), laag in A2HS
+document.documentElement.style.setProperty('--bot-offset', isStandalone ? '16px' : '72px');
 
 let audioCtx, beepOn=true, currentStream, torchOn=false, rafId=null, lastText='';
 
@@ -126,18 +144,25 @@ function ensureAudio(){if(!audioCtx) audioCtx=new (window.AudioContext||window.w
 function beep(){ if(!beepOn) return; ensureAudio().then(()=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=880;o.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(0.001,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.2,audioCtx.currentTime+0.02);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);o.start();o.stop(audioCtx.currentTime+0.17);});}
 
 async function startCamera(){
+  // stop vorige stream
   if(currentStream) currentStream.getTracks().forEach(t=>t.stop());
   const constraints={ video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} } };
   try{ currentStream = await navigator.mediaDevices.getUserMedia(constraints); }
   catch{ currentStream = await navigator.mediaDevices.getUserMedia({ video:true }); }
   video.srcObject=currentStream; await video.play();
+  // init pill indicators
+  flashBtn.classList.toggle('on', false);
+  soundBtn.classList.toggle('on', beepOn);
 }
 
 async function setTorch(on){
   const track=currentStream && currentStream.getVideoTracks()[0]; if(!track) return;
   const caps=track.getCapabilities && track.getCapabilities();
   if(caps && 'torch' in caps){
-    try{ await track.applyConstraints({ advanced:[{ torch:on }] }); torchOn=on; flashBtn.classList.toggle('on', on); toastMsg(on?'Flash on':'Flash off'); }catch{}
+    try{
+      await track.applyConstraints({advanced:[{torch:on}]});
+      torchOn=on; flashBtn.classList.toggle('on', on); toastMsg(on?'Flash on':'Flash off');
+    }catch{}
   }else{ toastMsg('Flash not supported'); }
 }
 
@@ -165,6 +190,7 @@ function stopScan(){ if(rafId) cancelAnimationFrame(rafId), rafId=null; if(curre
 
 function openViewer(url){
   stopScan();
+  // forceer scale=1.0 voor juiste fit in Apps Script
   try{ const u=new URL(url); if(!u.searchParams.has('scale')) u.searchParams.set('scale','1.0'); url=u.toString(); }catch{}
   viewer.style.display='block';
   loader.classList.add('active'); frame.style.opacity='0';
@@ -179,10 +205,21 @@ function backToScanner(){
   startScan();
 }
 
+/* Watchdog: herstel camera als die stopt of na terugkeren */
+function monitorCamera(){
+  const track = currentStream && currentStream.getVideoTracks()[0];
+  if(!track || track.readyState==='ended' || video.readyState<2){
+    startCamera().catch(()=>{}); // triggert iOS prompt indien nodig
+  }
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) monitorCamera(); });
+navigator.mediaDevices && navigator.mediaDevices.addEventListener?.('devicechange', monitorCamera);
+setInterval(monitorCamera, 2000);
+
 /* UI */
 startBtn.onclick=()=>{ start.style.display='none'; scanner.style.display='flex'; startScan(); };
 flashBtn.onclick=()=> setTorch(!torchOn);
-soundBtn.onclick=()=>{ beepOn=!beepOn; soundBtn.classList.toggle('on', beepOn); toastMsg(beepOn?'Sound on':'Sound off'); };
+soundBtn.onclick=()=>{ beepOn=!beepOn; soundBtn.classList.toggle('on',beepOn); toastMsg(beepOn?'Sound on':'Sound off'); };
 backBtn.onclick=()=> backToScanner();
 
 /* iOS: geen pinch-zoom */
