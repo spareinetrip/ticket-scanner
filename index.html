@@ -12,8 +12,16 @@
 <link rel="apple-touch-icon" href="icon-192.png" />
 
 <style>
-  :root{ --fg:#0b0b0c; --muted:#6b7280; --tint:#0a84ff; --shadow:0 12px 30px rgba(0,0,0,.10); --bot-offset:16px; }
-  html,body{height:100dvh; min-height:100dvh}
+  :root{ --fg:#0b0b0c; --muted:#6b7280; --tint:#0a84ff; --shadow:0 12px 30px rgba(0,0,0,.10); --bot-offset:16px; --vh:100dvh; }
+
+html,body{
+  height:var(--vh);
+  min-height:var(--vh);}
+  #start, #scanner, #viewer{
+  height:var(--vh);   /* secties forceren tot exact scherm */}
+
+#frame{
+  height:100%;        /* iframe vult viewer */}
   body{
     margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
     background:linear-gradient(180deg,#fff 0%,#eef2f7 100%);
@@ -53,6 +61,7 @@
     border-radius:18px; font-weight:900; text-align:center;
     box-shadow:0 10px 30px rgba(10,132,255,.35), 0 1px 0 rgba(255,255,255,.35) inset;
     backdrop-filter:saturate(180%) blur(12px); border:1px solid rgba(255,255,255,.55);
+    font-size:16px;
   }
 
   /* Toast + Help overlay */
@@ -301,6 +310,18 @@ soundBtn.classList.toggle('on', true);
 
 /* Prevent pinch-zoom */
 document.addEventListener('gesturestart', e=>e.preventDefault());
+
+// Zorg dat body of wrapper full-height is na layout
+function fixViewportHeight(){
+  const vh = window.innerHeight;
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
+window.addEventListener('load', fixViewportHeight);
+window.addEventListener('resize', fixViewportHeight);
+window.addEventListener('orientationchange', () => {
+  setTimeout(fixViewportHeight, 300);
+});
+  
 </script>
 </body>
 </html>
